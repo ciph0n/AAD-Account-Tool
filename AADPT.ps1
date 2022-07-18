@@ -1,10 +1,12 @@
 Add-Type -Assembly System.Windows.Forms
 Add-Type -Assembly PresentationFramework
 
-# This code was written for internal use.
-
-$FormTitle = "[1.8.5] ciph0n's AAD Account Tool"
+# Application variables used in customization
+$FormTitle = "[1.8.6] ciph0n's AAD Account Tool"
 $AllDebug = $false
+$Domain = "domain.com"
+$MSDomain = "DOMAIN_NAME.onmicrosoft.com"
+
 [xml]$Form = @"
 <Window 
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -137,7 +139,7 @@ if ((Get-InstalledModule "AzureAD" | Select-Object -ExpandProperty Name) -ne "Az
 try {
     Import-Module "AzureAD"
     try {
-        # [Automatic] Login using UPN credentials
+        # [Automatic] Login using UPN credentials (if applicable)
         $UPN = whoami /UPN
         Connect-AzureAD -AccountId $UPN | Out-Null
     } catch {
@@ -185,8 +187,8 @@ function HideControls {
 function RevealEmail {
     param ( [string]$Email )
     $Email = $Email -Replace '\s',''
-    if ($Email -notlike "*@REDACTED.REDACTED") {
-        $Email = "$Email@REDACTED.REDACTED"
+    if ($Email -notlike "*@$Domain") {
+        $Email = "$Email@$Domain"
     }
     return $Email
 }
@@ -288,13 +290,13 @@ $var_bResetPassword.Add_Click({
             if ($var_tbPR_Input.Text -match '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%()^*#?&])[A-Za-z\d@$!%()^*#?&]{9,}$') {
                 $var_tbPR_Input.BorderBrush = "#77DD77"
                 # Change UPN to managed domain
-                Set-AzureADUser -ObjectId $uDB.ObjectID -UserPrincipalName $uDB.MailNickName@REDACTED.onmicrosoft.com
+                Set-AzureADUser -ObjectId $uDB.ObjectID -UserPrincipalName $uDB.MailNickName@$MSDomain
 
                 # Update the password
                 Set-AzureADUserPassword -ObjectId $uDB.ObjectID -Password (ConvertTo-SecureString -AsPlainText $var_tbPR_Input.Text -Force)
 
                 # Change UPN back to the federated domain
-                Set-AzureADUser -ObjectId $uDB.ObjectID -UserPrincipalName $uDB.MailNickName@REDACTED.REDACTED
+                Set-AzureADUser -ObjectId $uDB.ObjectID -UserPrincipalName $uDB.MailNickName@$Domain
 
                 # Update output text box
                 $var_tbGOutput.Content = $uDB.DisplayName + "'s password has been reset."
